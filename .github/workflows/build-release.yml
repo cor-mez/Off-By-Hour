@@ -18,6 +18,9 @@ jobs:
             python -m pip install gooey wxPython pandas numpy openpyxl xlsxwriter pdfplumber PyPDF2
           fi
           python -m pip install pyinstaller
+- name: Clean previous build dirs
+      run: rm -rf build dist
+-name: Build app (.app)
       - run: |
           pyinstaller --windowed --onefile \
             --name "Off By Hour" \
@@ -42,6 +45,11 @@ jobs:
           if (Test-Path requirements.txt) { python -m pip install -r requirements.txt } `
           else { python -m pip install gooey wxPython pandas numpy openpyxl xlsxwriter pdfplumber PyPDF2 }
           python -m pip install pyinstaller
+- name: Clean previous build dirs
+      run: |
+        if (Test-Path build) { Remove-Item -Recurse -Force build }
+        if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
+- name: Build exe
       - run: |
           pyinstaller --noconsole --onefile ^
             --name "Off By Hour" ^
