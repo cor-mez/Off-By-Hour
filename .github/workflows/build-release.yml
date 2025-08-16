@@ -1,0 +1,57 @@
+name: Build Apps (macOS Apple Silicon + Windows)
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+jobs:
+  macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: |
+          python -m pip install --upgrade pip wheel setuptools
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          else
+            python -m pip install gooey wxPython pandas numpy openpyxl xlsxwriter pdfplumber PyPDF2
+          fi
+          python -m pip install pyinstaller
+      - run: |
+          pyinstaller --windowed --onefile \
+            --name "Off By Hour" \
+            --collect-submodules gooey --collect-submodules wx \
+            --collect-data openpyxl --collect-submodules xlsxwriter \
+            --collect-submodules pdfplumber --collect-submodules PyPDF2 \
+            off_by_hour_gui_toggle.py
+          cd dist && /usr/bin/zip -r "Off-By-Hour-macOS-arm64.zip" "Off By Hour.app"
+      - uses: actions/upload-artifact@v4
+        with: { name: Off-By-Hour-macOS-arm64, path: dist/Off-By-Hour-macOS-arm64.zip }
+      - if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/Off-By-Hour-macOS-arm64.zip }
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: |
+          python -m pip install --upgrade pip wheel setuptools
+          if (Test-Path requirements.txt) { python -m pip install -r requirements.txt } `
+          else { python -m pip install gooey wxPython pandas numpy openpyxl xlsxwriter pdfplumber PyPDF2 }
+          python -m pip install pyinstaller
+      - run: |
+          pyinstaller --noconsole --onefile ^
+            --name "Off By Hour" ^
+            --collect-submodules gooey --collect-submodules wx ^
+            --collect-data openpyxl --collect-submodules xlsxwriter ^
+            --collect-submodules pdfplumber --collect-submodules PyPDF2 ^
+            off_by_hour_gui_toggle.py
+          powershell Compress-Archive -Path "dist\Off By Hour.exe" -DestinationPath "dist\Off-By-Hour-Windows.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with: { name: Off-By-Hour-Windows, path: dist/Off-By-Hour-Windows.zip }
+      - if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/Off-By-Hour-Windows.zip }
