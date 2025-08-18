@@ -21,9 +21,13 @@ jobs:
     name: macOS (Apple Silicon)
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: ${{ env.PY_VERSION }} }
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
 
       - name: Install Python deps
         run: |
@@ -51,6 +55,7 @@ jobs:
             "${ENTRYPOINT}"
           ls -la dist
 
+      # ===== Sign + Notarize (arm64) =====
       - name: Decode signing assets
         run: |
           echo "${DEV_ID_CERT_P12}" | base64 --decode > dev_id.p12
@@ -91,14 +96,16 @@ jobs:
             --issuer "${AC_API_ISSUER_ID}" \
             --wait
         env:
-          AC_API_KEY_ID:    ${{ secrets.ACC_API_KEY_ID || secrets.AC_API_KEY_ID }}
+          AC_API_KEY_ID:    ${{ secrets.AC_API_KEY_ID }}
           AC_API_ISSUER_ID: ${{ secrets.AC_API_ISSUER_ID }}
 
       - name: Staple ticket
         run: xcrun stapler staple "dist/${APP_NAME}.app"
 
       - name: Install create-dmg
-        run: brew update && (brew install create-dmg || true)
+        run: |
+          brew update
+          brew install create-dmg || brew install create-dmg
 
       - name: Create DMG (Apple Silicon)
         run: |
@@ -119,9 +126,13 @@ jobs:
     name: macOS (Intel)
     runs-on: macos-13
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: ${{ env.PY_VERSION }} }
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
 
       - name: Install Python deps
         run: |
@@ -149,6 +160,7 @@ jobs:
             "${ENTRYPOINT}"
           ls -la dist
 
+      # ===== Sign + Notarize (Intel) =====
       - name: Decode signing assets
         run: |
           echo "${DEV_ID_CERT_P12}" | base64 --decode > dev_id.p12
@@ -196,7 +208,9 @@ jobs:
         run: xcrun stapler staple "dist/${APP_NAME}.app"
 
       - name: Install create-dmg
-        run: brew update && (brew install create-dmg || true)
+        run: |
+          brew update
+          brew install create-dmg || brew install create-dmg
 
       - name: Create DMG (Intel)
         run: |
@@ -212,5 +226,3 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: dist/${{ env.DMG_NAME_INTEL }}
-
-yaml
